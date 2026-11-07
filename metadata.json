@@ -1,0 +1,6 @@
+{
+  "name": "Pixel Studio Photography",
+  "description": "Premium luxury full-stack website for a creative photography and videography studio including booking, payment simulation, and admin dashboard",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

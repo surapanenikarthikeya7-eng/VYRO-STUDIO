@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "booking": {
+      "title": "Booking Request",
+      "description": "Customer slot booking record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "service": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "phone", "service"]
+    },
+    "portfolioItem": {
+      "title": "Portfolio Item",
+      "description": "Showcase piece for photography or video",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 50 },
+        "mediaUrl": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "category", "mediaUrl"]
+    },
+    "serviceItem": {
+      "title": "Studio Service",
+      "description": "Photography and cinematography service package",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 100 },
+        "priceRange": { "type": "string", "maxLength": 50 },
+        "features": { "type": "array" },
+        "isPopular": { "type": "boolean" }
+      },
+      "required": ["id", "title", "priceRange"]
+    },
+    "siteSettings": {
+      "title": "Site Settings",
+      "description": "Global website configuration and contact info",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string" },
+        "brandName": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "format": "email" },
+        "instagram": { "type": "string" },
+        "whatsapp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/user",
+      "description": "User profiles indexed by UID"
+    },
+    "/admins/{adminId}": {
+      "schema": "#/entities/user",
+      "description": "Administrative records"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "#/entities/booking",
+      "description": "Customer bookings and slot reservations"
+    },
+    "/portfolio/{itemId}": {
+      "schema": "#/entities/portfolioItem",
+      "description": "Dynamic visual portfolio and reels"
+    },
+    "/services/{serviceId}": {
+      "schema": "#/entities/serviceItem",
+      "description": "Configurable studio service packages and pricing"
+    },
+    "/settings/{settingId}": {
+      "schema": "#/entities/siteSettings",
+      "description": "Site-wide contact and branding settings"
+    }
+  }
+}
