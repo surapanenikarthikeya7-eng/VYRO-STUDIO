@@ -15,6 +15,11 @@ import {
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { portfolioData as initialPortfolioData, servicesData as initialServicesData } from '../data';
 import { PortfolioItem, StudioService } from '../types';
+import { 
+  dispatchEmailNotification, 
+  buildNotificationEmailContent, 
+  getNotificationSettings 
+} from '../lib/notificationService';
 
 export interface SiteSettings {
   logoUrl: string;
@@ -73,9 +78,9 @@ const DEFAULT_SETTINGS: SiteSettings = {
   heroTitleHighlight: 'Create Stories.',
   heroSubtitle: 'Professional Photography & Cinematic Videography Services',
   phone: '8639063089',
-  email: 'info@vyrostudio.com',
+  email: 'vyrostudo@gmail.com',
   whatsapp: '+91 8639063089',
-  instagram: 'https://instagram.com',
+  instagram: 'https://www.instagram.com/vyro_studo?obrf=MWkwbmE3ZzF5cTBqcw%3D%3D&utm_source=qr',
   backgroundVideoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-cinematographer-shooting-at-a-studio-setting-42353-large.mp4'
 };
 
@@ -92,7 +97,14 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
       if (docSnap.exists()) {
-        setSettings({ ...DEFAULT_SETTINGS, ...(docSnap.data() as Partial<SiteSettings>) });
+        const data = docSnap.data() as Partial<SiteSettings>;
+        const instagramUrl = (data.instagram && data.instagram !== 'https://instagram.com') 
+          ? data.instagram 
+          : DEFAULT_SETTINGS.instagram;
+        const emailAddress = (data.email && data.email !== 'info@vyrostudio.com')
+          ? data.email
+          : DEFAULT_SETTINGS.email;
+        setSettings({ ...DEFAULT_SETTINGS, ...data, instagram: instagramUrl, email: emailAddress });
       } else {
         // Initialize if not present
         setDoc(doc(db, 'settings', 'global'), DEFAULT_SETTINGS).catch(() => {});
@@ -256,6 +268,28 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
         serverTimestamp: serverTimestamp()
       });
       setBookings(prev => [{ id: docRef.id, ...payload }, ...prev]);
+
+      // Automatic Slot Booking Email Notification (Requirement 2)
+      try {
+        const notifSettings = await getNotificationSettings();
+        if (notifSettings.autoEmailsEnabled && notifSettings.autoBookingEnabled && payload.email) {
+          const content = buildNotificationEmailContent({ id: docRef.id, ...payload }, 'BOOKED', settings.brandName);
+          await dispatchEmailNotification({
+            bookingId: docRef.id,
+            recipientName: payload.name,
+            recipientEmail: payload.email,
+            subject: content.subject,
+            message: content.message,
+            htmlBody: content.htmlBody,
+            eventType: 'BOOKED',
+            idempotencyKey: `booking_${docRef.id}_booked`,
+            senderEmail: settings.email || 'vyrostudo@gmail.com'
+          });
+        }
+      } catch (emailErr) {
+        console.warn('Auto booking email dispatch note:', emailErr);
+      }
+
       return docRef.id;
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'bookings');
@@ -266,7 +300,46 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
   const updateBookingStatus = async (id: string, status: BookingRecord['status']) => {
     try {
       await updateDoc(doc(db, 'bookings', id), { status });
+      const targetBooking = bookings.find(b => b.id === id);
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+
+      // Automatic Status Change Emails (Requirement 3 & 4)
+      if (targetBooking && targetBooking.email) {
+        try {
+          const notifSettings = await getNotificationSettings();
+          if (notifSettings.autoEmailsEnabled) {
+            if (status === 'CANCELLED' && notifSettings.autoCancellationEnabled) {
+              const content = buildNotificationEmailContent({ ...targetBooking, status }, 'CANCELLED', settings.brandName);
+              await dispatchEmailNotification({
+                bookingId: id,
+                recipientName: targetBooking.name,
+                recipientEmail: targetBooking.email,
+                subject: content.subject,
+                message: content.message,
+                htmlBody: content.htmlBody,
+                eventType: 'CANCELLED',
+                idempotencyKey: `booking_${id}_cancelled`,
+                senderEmail: settings.email || 'vyrostudo@gmail.com'
+              });
+            } else if (status === 'COMPLETED' && notifSettings.autoCompletionEnabled) {
+              const content = buildNotificationEmailContent({ ...targetBooking, status }, 'COMPLETED', settings.brandName);
+              await dispatchEmailNotification({
+                bookingId: id,
+                recipientName: targetBooking.name,
+                recipientEmail: targetBooking.email,
+                subject: content.subject,
+                message: content.message,
+                htmlBody: content.htmlBody,
+                eventType: 'COMPLETED',
+                idempotencyKey: `booking_${id}_completed`,
+                senderEmail: settings.email || 'vyrostudo@gmail.com'
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.warn('Auto status change email dispatch note:', emailErr);
+        }
+      }
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
     }

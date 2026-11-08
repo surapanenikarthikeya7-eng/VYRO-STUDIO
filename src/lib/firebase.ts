@@ -33,8 +33,47 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(
+  app, 
+  (firebaseConfig as any).firestoreDatabaseId || 'ai-studio-pixelstudiophoto-98e57aea-7255-4355-8cd9-204ce7cd7cac'
+);
+
+// Standard Google Provider for regular user login (safe, standard profile & email scopes only)
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Dedicated Gmail Provider for Admin Studio Desk ONLY (requested only when connecting Gmail)
+export const GMAIL_SCOPES = [
+  'https://mail.google.com/',
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.compose',
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.labels',
+  'https://www.googleapis.com/auth/gmail.metadata'
+];
+
+export const gmailProvider = new GoogleAuthProvider();
+GMAIL_SCOPES.forEach(scope => {
+  gmailProvider.addScope(scope);
+});
+gmailProvider.setCustomParameters({
+  prompt: 'consent',
+  access_type: 'offline'
+});
+
+// In-memory access token cache (CRITICAL: Do NOT store in localStorage/sessionStorage)
+let inMemoryAccessToken: string | null = null;
+
+export const setCachedAccessToken = (token: string | null) => {
+  inMemoryAccessToken = token;
+};
+
+export const getCachedAccessToken = (): string | null => {
+  return inMemoryAccessToken;
+};
 
 // Error handling types as specified in the Firebase Skill
 export enum OperationType {
@@ -95,5 +134,15 @@ export async function testConnection() {
   }
 }
 
-// Admin email configured from runtime / environment
-export const PRIMARY_ADMIN_EMAIL = 'surapanenikarthikeya7@gmail.com';
+// Admin emails configured for studio master access
+export const PRIMARY_ADMIN_EMAILS = [
+  'vyrostudo@gmail.com',
+  'surapanenikarthikeya7@gmail.com'
+];
+export const PRIMARY_ADMIN_EMAIL = 'vyrostudo@gmail.com';
+
+export const isStudioAdminEmail = (email?: string | null): boolean => {
+  if (!email) return false;
+  const clean = email.trim().toLowerCase();
+  return PRIMARY_ADMIN_EMAILS.includes(clean);
+};

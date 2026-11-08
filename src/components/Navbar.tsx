@@ -26,6 +26,16 @@ export default function Navbar() {
   const handleLinkClick = (id: string) => {
     setIsOpen(false);
     setUserMenuOpen(false);
+    if (id === 'contact') {
+      navigate('/contact');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (id === 'portfolio') {
+      navigate('/portfolio');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (location.pathname !== '/') {
       navigate('/');
       setTimeout(() => {
@@ -57,8 +67,8 @@ export default function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-black/90 backdrop-blur-md border-b border-[#E8C49A]/15 py-3'
+        isScrolled || location.pathname !== '/'
+          ? 'bg-black/95 backdrop-blur-md border-b border-[#E8C49A]/15 py-3'
           : 'bg-transparent py-5'
       }`}
     >
@@ -70,17 +80,19 @@ export default function Navbar() {
           className="flex items-center gap-2.5 group cursor-pointer"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
-          <img
-            src={settings.logoUrl || '/assets/aistudio/image_35d6318c.png'}
-            alt="VYRO STUDIO"
-            className="w-10 h-10 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
-          />
+          <div className="w-10 h-10 rounded-lg bg-black border border-zinc-800/90 p-1 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-sm">
+            <img
+              src={settings.logoUrl || '/assets/aistudio/image_35d6318c.png'}
+              alt="VYRO STUDIO"
+              className="w-full h-full object-contain rounded"
+            />
+          </div>
           <div>
             <h1 className="font-sans font-bold tracking-widest text-[#FFFFFF] text-sm uppercase">
               {settings.brandName || 'VYRO STUDIO'}
             </h1>
             <p className="font-mono text-[8px] text-zinc-400 tracking-widest uppercase">
-              CINEMATOGRAPHY & ARTS
+              PHOTOGRAPHY AND VIDEOGRAPHY
             </p>
           </div>
         </Link>
@@ -97,14 +109,20 @@ export default function Navbar() {
             </button>
           ))}
 
-          {/* Admin Dashboard Link */}
-          <Link
-            to="/admin"
-            className="text-xs font-mono uppercase text-[#E8C49A] hover:text-white border border-[#E8C49A]/30 hover:border-[#E8C49A] bg-[#171717] px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
-          >
-            <Shield className="w-3.5 h-3.5 text-[#E8C49A]" />
-            Dashboard
-          </Link>
+          {/* Admin Dashboard Link - Only shown to authorized studio administrators */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`text-xs font-mono uppercase px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                location.pathname === '/admin'
+                  ? 'text-[#E8C49A] border border-[#E8C49A] bg-[#171717] shadow-[0_0_15px_rgba(232,196,154,0.15)] font-bold'
+                  : 'text-[#E8C49A] hover:text-white border border-[#E8C49A]/30 hover:border-[#E8C49A] bg-[#171717]'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-[#E8C49A]" />
+              DASHBOARD
+            </Link>
+          )}
 
           {/* User Profile Capsule with Dropdown */}
           <div className="relative">
@@ -140,14 +158,16 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  <Link
-                    to="/admin"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-sans text-zinc-300 hover:text-white hover:bg-zinc-800/50 rounded-lg mt-1"
-                  >
-                    <Shield className="w-3.5 h-3.5 text-[#E8C49A]" />
-                    Admin Control Desk
-                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-sans text-zinc-300 hover:text-white hover:bg-zinc-800/50 rounded-lg mt-1"
+                    >
+                      <Shield className="w-3.5 h-3.5 text-[#E8C49A]" />
+                      Admin Control Desk
+                    </Link>
+                  )}
 
                   <button
                     onClick={handleLogout}
@@ -164,12 +184,14 @@ export default function Navbar() {
 
         {/* Mobile Controls */}
         <div className="flex md:hidden items-center gap-2">
-          <Link
-            to="/admin"
-            className="text-[10px] font-mono uppercase text-[#E8C49A] border border-[#E8C49A]/30 px-2.5 py-1 rounded bg-[#171717]"
-          >
-            Admin
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="text-[10px] font-mono uppercase text-[#E8C49A] border border-[#E8C49A]/30 px-2.5 py-1 rounded bg-[#171717]"
+            >
+              Admin
+            </Link>
+          )}
 
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -210,13 +232,15 @@ export default function Navbar() {
             </button>
           ))}
 
-          <Link
-            to="/admin"
-            onClick={() => setIsOpen(false)}
-            className="text-center font-mono text-xs uppercase bg-[#171717] text-[#E8C49A] border border-[#E8C49A]/30 rounded-lg py-2.5 mt-2"
-          >
-            ADMIN CONTROL PANEL
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              onClick={() => setIsOpen(false)}
+              className="text-center font-mono text-xs uppercase bg-[#171717] text-[#E8C49A] border border-[#E8C49A]/30 rounded-lg py-2.5 mt-2"
+            >
+              ADMIN CONTROL PANEL
+            </Link>
+          )}
         </motion.div>
       )}
     </nav>

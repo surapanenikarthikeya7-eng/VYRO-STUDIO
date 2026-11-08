@@ -31,6 +31,8 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         (request.auth.token.email != null && (
+          request.auth.token.email == 'vyrostudo@gmail.com' ||
+          request.auth.token.email.lower() == 'vyrostudo@gmail.com' ||
           request.auth.token.email == 'surapanenikarthikeya7@gmail.com' ||
           request.auth.token.email.lower() == 'surapanenikarthikeya7@gmail.com'
         )) ||
@@ -40,11 +42,15 @@ service cloud.firestore {
       );
     }
 
-    // User profiles
+    // User profiles & accounts (allows persistent cross-device authentication)
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && incoming().email is string;
-      allow update: if isOwner(userId) || isAdmin();
+      allow read, create, update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // Studio member cross-device credential registry
+    match /studio_users/{userKey} {
+      allow read, create, update: if true;
       allow delete: if isAdmin();
     }
 
@@ -84,6 +90,17 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Email notifications history & status tracking
+    match /email_notifications/{notificationId} {
+      allow read: if isAdmin() || (isSignedIn() && (
+        existing().recipientEmail == request.auth.token.email ||
+        existing().senderEmail == request.auth.token.email
+      ));
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
   }

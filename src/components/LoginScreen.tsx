@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStudio } from '../context/StudioContext';
 
@@ -31,7 +31,7 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('Please provide your Gmail and password.');
+      setError('Please provide your email address and password.');
       return;
     }
 
@@ -51,7 +51,12 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      setError(err.message || 'Google sign-in was cancelled or encountered an error.');
+      const msg = err?.message || '';
+      if (msg.includes('access_denied') || msg.includes('Google verification') || msg.includes('testing') || msg.includes('restricted')) {
+        setError('Google OAuth verification is restricted for external accounts. Please enter your email and password above or create an account below.');
+      } else {
+        setError(msg || 'Google sign-in was cancelled or encountered an error.');
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -62,7 +67,7 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
     setResetError(null);
 
     if (!resetEmail.trim() || !resetEmail.includes('@')) {
-      setResetError('Please enter a valid Gmail address.');
+      setResetError('Please enter a valid email address.');
       return;
     }
 
@@ -143,17 +148,17 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* Gmail Input */}
+            {/* Email Input */}
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-300 mb-1.5">
-                Gmail Address
+                Email Address
               </label>
               <div className="relative">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@gmail.com"
+                  placeholder="name@gmail.com or email"
                   required
                   className="w-full bg-[#000000]/80 border border-zinc-800 rounded-xl px-4 py-3 pl-11 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#E8C49A] transition-colors font-sans"
                 />
@@ -270,7 +275,7 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
 
         {/* Footer Note */}
         <p className="mt-8 text-center text-[10px] font-mono text-zinc-600 tracking-widest uppercase">
-          VYRO STUDIO © 2026 • HIGH FIDELITY VISUAL PRODUCTION
+          VYRO STUDIO • HIGH FIDELITY VISUAL PRODUCTION
         </p>
       </motion.div>
 
@@ -300,13 +305,13 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
                 Reset Password
               </h3>
               <p className="text-xs text-zinc-400 mt-1">
-                Enter your registered Gmail address. We'll send an official Firebase recovery link.
+                Enter your registered email address. We'll send an official recovery link.
               </p>
 
               {resetSent ? (
                 <div className="mt-4 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                  <span>Recovery link sent! Please inspect your Gmail inbox and spam folder.</span>
+                  <span>Recovery link sent! Please inspect your email inbox and spam folder.</span>
                 </div>
               ) : (
                 <form onSubmit={handleResetPassword} className="mt-4 space-y-4">
@@ -318,13 +323,13 @@ export default function LoginScreen({ onNavigateToRegister }: LoginScreenProps) 
 
                   <div>
                     <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1">
-                      Gmail Address
+                      Email Address
                     </label>
                     <input
                       type="email"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
-                      placeholder="name@gmail.com"
+                      placeholder="name@gmail.com or email"
                       required
                       className="w-full bg-[#000000] border border-zinc-800 rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#E8C49A]"
                     />

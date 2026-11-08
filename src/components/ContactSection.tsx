@@ -124,22 +124,22 @@ export default function ContactSection() {
                   </div>
                 </a>
 
-                {/* Email */}
+                {/* Gmail Link */}
                 <div className="flex items-center gap-4 bg-[#171717] border border-zinc-850 rounded-xl p-4 hover:border-[#E8C49A]/30 transition-colors">
                   <div className="p-2.5 bg-black text-[#E8C49A] rounded-lg border border-[#E8C49A]/20">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">OFFICIAL DESK</span>
-                    <a href={`mailto:${settings.email || 'info@vyrostudio.com'}`} className="text-xs font-mono text-zinc-300 hover:text-white transition-colors">
-                      {settings.email || 'info@vyrostudio.com'}
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">GMAIL LINK</span>
+                    <a href={`mailto:${settings.email || 'vyrostudo@gmail.com'}`} className="text-xs font-mono text-zinc-300 hover:text-white transition-colors">
+                      {settings.email || 'vyrostudo@gmail.com'}
                     </a>
                   </div>
                 </div>
 
                 {/* Instagram */}
                 <a
-                  href={settings.instagram || 'https://instagram.com'}
+                  href={settings.instagram || 'https://www.instagram.com/vyro_studo?obrf=MWkwbmE3ZzF5cTBqcw%3D%3D&utm_source=qr'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 bg-[#171717] border border-zinc-850 rounded-xl p-4 hover:border-[#E8C49A]/30 transition-colors group"
@@ -150,25 +150,10 @@ export default function ContactSection() {
                   <div>
                     <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">SOCIAL MEDIA</span>
                     <span className="text-xs font-mono text-zinc-300 group-hover:text-[#E8C49A] transition-colors">
-                      @vyrostudio.official
+                      @vyro_studo
                     </span>
                   </div>
                 </a>
-              </div>
-            </div>
-
-            {/* Dark Styled Google Maps Frame */}
-            <div className="rounded-xl overflow-hidden border border-zinc-850 bg-[#171717] h-52 shadow-md relative group">
-              <iframe
-                title="VYRO STUDIO Headquarters Location Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m13!1m4!1s0x3bcb99daeaebd2c7:0xae93b7ff32c538f8!2sHyderabad%2C+Telangana!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb99daeaebd2c7%3A0xae93b7ff32c538f8!2sHyderabad%2C+Telangana!5e0!3m2!1sen!2sin!4v1565131000000!5m2!1sen!2sin"
-                className="w-full h-full grayscale invert opacity-75 group-hover:opacity-100 transition-opacity"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-              />
-              <div className="absolute top-3 left-3 bg-black/85 border border-[#E8C49A]/20 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wider uppercase text-[#E8C49A] shadow-lg">
-                STUDIO HEADQUARTERS
               </div>
             </div>
           </div>

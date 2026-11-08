@@ -72,6 +72,27 @@
         "instagram": { "type": "string" },
         "whatsapp": { "type": "string" }
       }
+    },
+    "emailNotification": {
+      "title": "Email Notification Record",
+      "description": "History and delivery status of automated and manual emails",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "recipientName": { "type": "string", "maxLength": 100 },
+        "recipientEmail": { "type": "string", "format": "email", "maxLength": 150 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string" },
+        "eventType": { "type": "string", "enum": ["BOOKED", "CANCELLED", "COMPLETED", "MANUAL"] },
+        "status": { "type": "string", "enum": ["SENT", "FAILED", "PENDING"] },
+        "errorMessage": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "idempotencyKey": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "channel": { "type": "string" }
+      },
+      "required": ["recipientEmail", "subject", "eventType", "status"]
     }
   },
   "firestore": {
@@ -98,6 +119,10 @@
     "/settings/{settingId}": {
       "schema": "#/entities/siteSettings",
       "description": "Site-wide contact and branding settings"
+    },
+    "/email_notifications/{notificationId}": {
+      "schema": "#/entities/emailNotification",
+      "description": "Audit trail and delivery status of Gmail notifications"
     }
   }
 }

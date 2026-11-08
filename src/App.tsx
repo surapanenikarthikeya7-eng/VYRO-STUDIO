@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, ArrowUp, CalendarDays } from 'lucide-react';
 
@@ -15,10 +15,10 @@ import RegisterScreen from './components/RegisterScreen';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Services from './components/Services';
-import Portfolio from './components/Portfolio';
+import PortfolioPage from './components/PortfolioPage';
 import BookingModal from './components/BookingModal';
 import PaymentModal from './components/PaymentModal';
-import ContactSection from './components/ContactSection';
+import ContactPage from './components/ContactPage';
 import Footer from './components/Footer';
 import AdminPanel from './components/AdminPanel';
 
@@ -27,12 +27,19 @@ function HomeLanding({
 }: {
   onOpenBooking: (service?: string) => void;
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-black text-white relative">
       {/* Hero Section */}
       <Hero
         onOpenBooking={() => handleOpenBooking()}
         onScrollView={(id) => {
+          if (id === 'portfolio') {
+            navigate('/portfolio');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
           const el = document.getElementById(id);
           if (el) el.scrollIntoView({ behavior: 'smooth' });
         }}
@@ -40,12 +47,6 @@ function HomeLanding({
 
       {/* Services and Pricing section */}
       <Services onOpenBookingWithService={handleOpenBooking} />
-
-      {/* Curated Visual Arts Showroom & Portfolio */}
-      <Portfolio />
-
-      {/* Direct Contact & Proposal Submission Desk */}
-      <ContactSection />
     </div>
   );
 }
@@ -150,6 +151,18 @@ function MainAppContent() {
           <Route
             path="/"
             element={<HomeLanding onOpenBooking={handleOpenBooking} />}
+          />
+
+          {/* Dedicated Portfolio Showcase Page */}
+          <Route
+            path="/portfolio"
+            element={<PortfolioPage />}
+          />
+
+          {/* Dedicated Contact & Inquiries Page */}
+          <Route
+            path="/contact"
+            element={<ContactPage onOpenBooking={handleOpenBooking} />}
           />
 
           {/* Secure Admin Dashboard */}

@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { createServer as createViteServer } from 'vite';
 import { DbService } from './src/server/dbService.js'; // tsx/esbuild resolves compilation path
 import dotenv from 'dotenv';
@@ -173,6 +174,252 @@ app.get('/api/payment', authenticateJWT, async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Server error retrieving payment transactions.' });
   }
+});
+
+// ------------------- GMAIL NOTIFICATIONS ENDPOINTS -------------------
+
+interface NotificationItem {
+  id: string;
+  bookingId?: string;
+  recipientName: string;
+  recipientEmail: string;
+  subject: string;
+  message: string;
+  htmlBody: string;
+  eventType: string;
+  status: 'SENT' | 'FAILED' | 'PENDING';
+  sentAt: string;
+  idempotencyKey: string;
+  senderEmail: string;
+  channel: string;
+  errorMessage?: string;
+}
+
+const serverNotifications: NotificationItem[] = [];
+
+function buildRawEmail(to: string, subject: string, html: string, senderName: string = 'VYRO STUDIO'): string {
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+  const lines = [
+    `From: "${senderName}" <me>`,
+    `To: ${to}`,
+    `Subject: ${utf8Subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    html
+  ];
+  return Buffer.from(lines.join('\r\n'))
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+// POST /api/notifications/send
+app.post('/api/notifications/send', async (req, res) => {
+  try {
+    const {
+      recipientEmail,
+      recipientName,
+      subject,
+      message,
+      htmlBody,
+      eventType = 'BOOKED',
+      bookingId,
+      idempotencyKey,
+      accessToken
+    } = req.body;
+
+    if (!recipientEmail || !subject || !message) {
+      return res.status(400).json({ error: 'recipientEmail, subject, and message are required.' });
+    }
+
+    const cleanEmail = recipientEmail.trim().toLowerCase();
+    const token = accessToken || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+
+    // 1. Idempotency Check to guarantee emails are sent only once per event
+    if (idempotencyKey) {
+      const existing = serverNotifications.find(n => n.idempotencyKey === idempotencyKey && n.status === 'SENT');
+      if (existing) {
+        return res.json({
+          success: true,
+          status: 'SENT',
+          channel: existing.channel,
+          notification: existing,
+          message: 'Notification already sent for this event.'
+        });
+      }
+    }
+
+    let status: 'SENT' | 'FAILED' = 'FAILED';
+    let channel = 'NONE';
+    let errorDetail = '';
+
+    // 2. Google Workspace Gmail REST API dispatch if OAuth access token provided
+    if (token) {
+      try {
+        const raw = buildRawEmail(cleanEmail, subject, htmlBody || message);
+        const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ raw })
+        });
+
+        if (gmailRes.ok) {
+          status = 'SENT';
+          channel = 'GMAIL_API';
+        } else {
+          const errData = await gmailRes.json().catch(() => ({}));
+          errorDetail = errData.error?.message || `Gmail API HTTP status ${gmailRes.status}`;
+        }
+      } catch (err: any) {
+        errorDetail = err.message || 'Gmail API request error';
+      }
+    }
+
+    // 3. Fallback to Gmail SMTP if configured in environment
+    const GMAIL_USER = process.env.GMAIL_USER || 'vyrostudo@gmail.com';
+    const GMAIL_PASS = process.env.GMAIL_APP_PASSWORD;
+
+    if (status !== 'SENT' && GMAIL_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: GMAIL_USER,
+            pass: GMAIL_PASS
+          }
+        });
+
+        await transporter.sendMail({
+          from: `"VYRO STUDIO" <${GMAIL_USER}>`,
+          to: cleanEmail,
+          subject,
+          text: message,
+          html: htmlBody || message
+        });
+
+        status = 'SENT';
+        channel = 'SERVER_SMTP';
+        errorDetail = '';
+      } catch (smtpErr: any) {
+        errorDetail = smtpErr.message || 'SMTP delivery error';
+      }
+    }
+
+    if (status !== 'SENT' && !token && !GMAIL_PASS) {
+      errorDetail = 'Admin Gmail not connected. Please tap "Authorize Gmail" in Admin Dashboard to send.';
+    }
+
+    const item: NotificationItem = {
+      id: idempotencyKey || 'notif_' + Date.now(),
+      bookingId,
+      recipientName: recipientName || cleanEmail.split('@')[0],
+      recipientEmail: cleanEmail,
+      subject,
+      message,
+      htmlBody: htmlBody || message,
+      eventType,
+      status,
+      sentAt: new Date().toISOString(),
+      idempotencyKey: idempotencyKey || 'manual_' + Date.now(),
+      senderEmail: GMAIL_USER,
+      channel,
+      errorMessage: errorDetail || undefined
+    };
+
+    serverNotifications.unshift(item);
+    if (serverNotifications.length > 500) serverNotifications.pop();
+
+    if (status === 'SENT') {
+      return res.json({ success: true, status: 'SENT', channel, notification: item });
+    } else {
+      return res.status(200).json({ success: false, status: 'FAILED', channel, error: errorDetail, notification: item });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Server error processing notification.' });
+  }
+});
+
+// GET /api/notifications/history
+app.get('/api/notifications/history', (req, res) => {
+  res.json({
+    total: serverNotifications.length,
+    notifications: serverNotifications
+  });
+});
+
+// POST /api/notifications/retry/:id
+app.post('/api/notifications/retry/:id', async (req, res) => {
+  const { id } = req.params;
+  const target = serverNotifications.find(n => n.id === id || n.idempotencyKey === id);
+  if (!target) {
+    return res.status(404).json({ error: 'Notification record not found' });
+  }
+
+  // Attempt re-dispatch
+  const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : req.body.accessToken;
+  const GMAIL_USER = process.env.GMAIL_USER || 'vyrostudo@gmail.com';
+  const GMAIL_PASS = process.env.GMAIL_APP_PASSWORD;
+
+  let status: 'SENT' | 'FAILED' = 'FAILED';
+  let channel = 'NONE';
+  let errorDetail = '';
+
+  if (token) {
+    try {
+      const raw = buildRawEmail(target.recipientEmail, target.subject, target.htmlBody || target.message);
+      const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw })
+      });
+      if (gmailRes.ok) {
+        status = 'SENT';
+        channel = 'GMAIL_API';
+      } else {
+        const errJson = await gmailRes.json().catch(() => ({}));
+        errorDetail = errJson.error?.message || `Gmail API HTTP ${gmailRes.status}`;
+      }
+    } catch (e: any) {
+      errorDetail = e.message || 'Gmail API retry error';
+    }
+  }
+
+  if (status !== 'SENT' && GMAIL_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: GMAIL_USER, pass: GMAIL_PASS }
+      });
+      await transporter.sendMail({
+        from: `"VYRO STUDIO" <${GMAIL_USER}>`,
+        to: target.recipientEmail,
+        subject: target.subject,
+        text: target.message,
+        html: target.htmlBody || target.message
+      });
+      status = 'SENT';
+      channel = 'SERVER_SMTP';
+      errorDetail = '';
+    } catch (e: any) {
+      errorDetail = e.message || 'SMTP retry error';
+    }
+  }
+
+  target.status = status;
+  target.channel = channel;
+  target.sentAt = new Date().toISOString();
+  target.errorMessage = errorDetail || undefined;
+
+  res.json({ success: status === 'SENT', status, notification: target, error: errorDetail });
 });
 
 // ------------------- Vite Server Integration -------------------

@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Phone, Mail, Instagram, MessageCircle, ArrowUp } from 'lucide-react';
 import { useStudio } from '../context/StudioContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Footer() {
   const { settings } = useStudio();
+  const { isAdmin } = useAuth();
 
   const handleScrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -51,7 +53,7 @@ export default function Footer() {
                 <MessageCircle className="w-4 h-4 fill-currentColor" />
               </a>
               <a 
-                href={settings.instagram || 'https://instagram.com'} 
+                href={settings.instagram || 'https://www.instagram.com/vyro_studo?obrf=MWkwbmE3ZzF5cTBqcw%3D%3D&utm_source=qr'} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="p-2 bg-[#171717] hover:bg-[#E8C49A]/15 border border-zinc-850 rounded-lg text-zinc-400 hover:text-[#E8C49A] transition-colors"
@@ -79,20 +81,22 @@ export default function Footer() {
                 </button>
               </li>
               <li>
-                <button onClick={() => handleScrollToSection('portfolio')} className="hover:text-[#E8C49A] transition-colors cursor-pointer text-left">
+                <Link to="/portfolio" onClick={handleScrollToTop} className="hover:text-[#E8C49A] transition-colors cursor-pointer text-left block">
                   Cinematic Portfolio
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleScrollToSection('contact')} className="hover:text-[#E8C49A] transition-colors cursor-pointer text-left">
-                  Inquiry Desk
-                </button>
-              </li>
-              <li>
-                <Link to="/admin" className="hover:text-[#E8C49A] transition-colors">
-                  Admin Dashboard
                 </Link>
               </li>
+              <li>
+                <Link to="/contact" onClick={handleScrollToTop} className="hover:text-[#E8C49A] transition-colors cursor-pointer text-left block">
+                  Inquiry Desk & Contact
+                </Link>
+              </li>
+              {isAdmin && (
+                <li>
+                  <Link to="/admin" className="hover:text-[#E8C49A] transition-colors">
+                    Admin Dashboard
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -119,8 +123,10 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-3.5 h-3.5 text-[#E8C49A]" />
-                <span className="text-zinc-500 font-mono text-[11px]">Email Desk:</span>
-                <span className="text-zinc-300">{settings.email || 'info@vyrostudio.com'}</span>
+                <span className="text-zinc-500 font-mono text-[11px]">Gmail:</span>
+                <a href={`mailto:${settings.email || 'vyrostudo@gmail.com'}`} className="text-zinc-300 hover:text-white transition-colors">
+                  {settings.email || 'vyrostudo@gmail.com'}
+                </a>
               </li>
             </ul>
           </div>
@@ -128,12 +134,10 @@ export default function Footer() {
         </div>
 
         {/* Closing details */}
-        <div className="pt-10 mt-12 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-zinc-500 font-mono">
-          <p>© 2026 {settings.brandName || 'VYRO STUDIO'}. ALL RIGHTS RESERVED • CLOUD ARCHITECTURE.</p>
-          
+        <div className="pt-10 mt-12 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-end gap-4 text-[10px] text-zinc-500 font-mono">
           <button
             onClick={handleScrollToTop}
-            className="flex items-center gap-1.5 hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 hover:text-white uppercase tracking-wider transition-colors cursor-pointer ml-auto"
           >
             BACK TO TOP
             <ArrowUp className="w-3.5 h-3.5" />

@@ -21,7 +21,8 @@ import {
   CheckCircle,
   Clock,
   Eye,
-  Play
+  Play,
+  Mail
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +30,7 @@ import { useStudio, SiteSettings, BookingRecord } from '../context/StudioContext
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { PortfolioItem, StudioService } from '../types';
+import GmailStudioDesk from './GmailStudioDesk';
 
 interface DeleteTarget {
   type: 'booking' | 'portfolio' | 'service' | 'logo' | 'bulk_bookings';
@@ -73,7 +75,15 @@ export default function AdminPanel() {
   const isAuthorized = isAdmin || passcodeUnlocked;
 
   // Active Management Tab
-  const [activeTab, setActiveTab] = useState<'bookings' | 'portfolio' | 'services' | 'branding' | 'banners' | 'contacts'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'portfolio' | 'services' | 'branding' | 'banners' | 'contacts' | 'gmail'>('bookings');
+
+  // Pre-filled recipient for Gmail desk from bookings
+  const [gmailClientRecipient, setGmailClientRecipient] = useState<{
+    name: string;
+    email: string;
+    service?: string;
+    date?: string;
+  } | null>(null);
 
   // Search in bookings
   const [bookingSearch, setBookingSearch] = useState('');
@@ -162,7 +172,12 @@ export default function AdminPanel() {
   // Admin Passcode Check
   const handlePasscodeUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPasscode === 'vyro2026' || adminPasscode === 'admin123' || adminPasscode === 'vyrostudio') {
+    if (
+      adminPasscode === 'vyro@143' ||
+      adminPasscode === 'vyro2026' || 
+      adminPasscode === 'admin123' || 
+      adminPasscode === 'vyrostudio'
+    ) {
       setPasscodeUnlocked(true);
       setPasscodeError(null);
       triggerFeedback('Admin session authorized with master passcode.');
@@ -170,7 +185,7 @@ export default function AdminPanel() {
         try {
           await setDoc(doc(db, 'admins', user.uid), {
             uid: user.uid,
-            email: user.email || 'admin@vyrostudio.com',
+            email: user.email || 'vyrostudo@gmail.com',
             role: 'admin',
             unlockedAt: new Date().toISOString()
           }, { merge: true });
@@ -179,7 +194,7 @@ export default function AdminPanel() {
         }
       }
     } else {
-      setPasscodeError('Invalid Admin Master Passcode. Hint: vyro2026');
+      setPasscodeError('Invalid Admin Master Passcode.');
     }
   };
 
@@ -226,62 +241,40 @@ export default function AdminPanel() {
   });
 
   return (
-    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#E8C49A]/30">
+    <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#E8C49A]/30 pt-28 pb-16">
       
-      {/* Top Header Bar */}
-      <header className="bg-[#171717] border-b border-zinc-850 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-3">
+      {/* Top Breadcrumb & Status Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
           <Link
             to="/"
-            className="p-2 bg-black border border-zinc-800 hover:border-[#E8C49A] rounded-lg text-zinc-400 hover:text-white transition-colors"
-            title="Return to Website"
+            className="inline-flex items-center gap-2 text-xs font-mono uppercase text-zinc-400 hover:text-[#E8C49A] transition-colors cursor-pointer group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Return to Studio Home</span>
           </Link>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-black border border-[#E8C49A]/40 flex items-center justify-center p-1">
-              <img
-                src={settings.logoUrl || '/assets/aistudio/image_35d6318c.png'}
-                alt="VYRO STUDIO"
-                className="w-full h-full object-contain rounded"
-              />
-            </div>
-            <div>
-              <h1 className="text-sm font-sans font-bold tracking-widest text-white uppercase flex items-center gap-2">
-                VYRO STUDIO <span className="text-[#E8C49A] text-xs font-mono font-normal">ADMIN SUITE</span>
-              </h1>
-              <p className="text-[10px] font-mono text-zinc-400">
-                PRO CONTROL DESK • FIRESTORE PERSISTENT
-              </p>
-            </div>
+
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>ADMIN SUITE • {user?.email || 'Authorized Master'}</span>
+            </span>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline-block text-[11px] font-mono text-zinc-400">
-            {user?.email || 'Administrator Session'}
-          </span>
-          <button
-            onClick={() => {
-              logout();
-              navigate('/');
-            }}
-            className="text-xs font-mono uppercase bg-red-950/40 border border-red-500/30 text-red-300 hover:bg-red-900/40 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        </div>
-      </header>
+      </div>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Passcode Unlock Barrier (If not signed in with admin email) */}
         {!isAuthorized ? (
-          <div className="max-w-md mx-auto my-16 bg-[#171717] border border-[#E8C49A]/30 rounded-2xl p-8 shadow-2xl text-center">
-            <div className="w-12 h-12 rounded-full bg-[#E8C49A]/10 border border-[#E8C49A]/30 text-[#E8C49A] flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-6 h-6" />
+          <div className="max-w-md mx-auto my-12 bg-[#171717] border border-[#E8C49A]/30 rounded-2xl p-8 shadow-2xl text-center">
+            <div className="w-16 h-16 rounded-xl bg-black border border-[#E8C49A]/30 flex items-center justify-center mx-auto mb-4 p-2 shadow-lg">
+              <img
+                src={settings.logoUrl || '/assets/aistudio/image_35d6318c.png'}
+                alt="VYRO STUDIO"
+                className="w-full h-full object-contain rounded-lg"
+              />
             </div>
             <h2 className="text-xl font-sans font-bold text-white uppercase tracking-wider">
               Admin Authentication
@@ -301,7 +294,7 @@ export default function AdminPanel() {
                 type="password"
                 value={adminPasscode}
                 onChange={(e) => setAdminPasscode(e.target.value)}
-                placeholder="Enter Passcode (e.g. vyro2026)"
+                placeholder="Enter Passcode (e.g. vyro@143)"
                 required
                 className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-[#E8C49A] transition-colors text-center font-mono"
               />
@@ -334,6 +327,7 @@ export default function AdminPanel() {
             <div className="flex flex-wrap items-center gap-2 border-b border-zinc-850 pb-4 mb-8">
               {[
                 { id: 'bookings', label: `Customer Bookings (${bookings.length})`, icon: CalendarDays },
+                { id: 'gmail', label: 'Gmail Notifications', icon: Mail },
                 { id: 'portfolio', label: `Portfolio Items (${portfolio.length})`, icon: Film },
                 { id: 'services', label: `Services & Pricing (${services.length})`, icon: DollarSign },
                 { id: 'branding', label: 'Logo & Identity', icon: ImageIcon },
@@ -477,22 +471,42 @@ export default function AdminPanel() {
                                 </select>
                               </td>
                               <td className="p-4 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setDeleteTarget({
-                                      type: 'booking',
-                                      id: b.id,
-                                      name: `Booking by ${b.name}`,
-                                      details: `${b.service} • Date: ${b.date || 'TBD'} • Contact: ${b.phone} • Email: ${b.email}`
-                                    });
-                                  }}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 hover:border-red-500/60 text-red-300 hover:text-white rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer shadow-sm"
-                                  title="Permanently Delete Booking Record"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                  <span>Delete</span>
-                                </button>
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setGmailClientRecipient({
+                                        name: b.name,
+                                        email: b.email,
+                                        service: b.service,
+                                        date: b.date
+                                      });
+                                      setActiveTab('gmail');
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#E8C49A]/15 hover:bg-[#E8C49A]/30 border border-[#E8C49A]/40 text-[#E8C49A] hover:text-white rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer shadow-sm"
+                                    title="Send Shoot Confirmation or Quote via Gmail"
+                                  >
+                                    <Mail className="w-3.5 h-3.5 text-[#E8C49A]" />
+                                    <span>Email Client</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeleteTarget({
+                                        type: 'booking',
+                                        id: b.id,
+                                        name: `Booking by ${b.name}`,
+                                        details: `${b.service} • Date: ${b.date || 'TBD'} • Contact: ${b.phone} • Email: ${b.email}`
+                                      });
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 hover:border-red-500/60 text-red-300 hover:text-white rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer shadow-sm"
+                                    title="Permanently Delete Booking Record"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -1133,6 +1147,14 @@ export default function AdminPanel() {
                   Save Contact Information
                 </button>
               </form>
+            )}
+
+            {/* TAB 7: GMAIL OFFICIAL STUDIO DESK */}
+            {activeTab === 'gmail' && (
+              <GmailStudioDesk
+                initialRecipient={gmailClientRecipient}
+                onClearInitialRecipient={() => setGmailClientRecipient(null)}
+              />
             )}
 
           </div>

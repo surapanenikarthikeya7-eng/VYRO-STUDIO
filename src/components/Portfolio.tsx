@@ -169,7 +169,7 @@ export default function Portfolio() {
                     {activeVideo.title}
                   </h3>
                   <p className="text-zinc-500 text-[11px] font-mono mt-1">
-                    VYRO STUDIO PRODUCTION ARCHIVES • COPYRIGHT © 2026
+                    VYRO STUDIO PRODUCTION ARCHIVES
                   </p>
                 </div>
               </motion.div>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStudio } from '../context/StudioContext';
 
@@ -44,11 +44,11 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
     return password === confirmPassword;
   }, [password, confirmPassword]);
 
-  // Gmail validation
-  const isGmailValid = useMemo(() => {
+  // Email validation (supports all email domains)
+  const isEmailValid = useMemo(() => {
     if (!email) return null;
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
+    return re.test(email.trim());
   }, [email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +60,8 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
       return;
     }
 
-    if (!email.trim() || !isGmailValid) {
-      setError('Please provide a valid Gmail address (e.g. yourname@gmail.com).');
+    if (!email.trim() || !isEmailValid) {
+      setError('Please provide a valid email address (e.g. yourname@gmail.com).');
       return;
     }
 
@@ -79,10 +79,8 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
     try {
       await registerWithEmail(name, email, password);
       setSuccess(true);
-      setTimeout(() => {
-        onNavigateToLogin();
-      }, 2200);
     } catch (err: any) {
+      setSuccess(false);
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -189,15 +187,15 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
                 </div>
               </div>
 
-              {/* Gmail */}
+              {/* Email Address */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-[11px] font-mono uppercase tracking-wider text-zinc-300">
-                    Gmail Address
+                    Email Address
                   </label>
-                  {email && isGmailValid !== null && (
-                    <span className={`text-[10px] font-mono ${isGmailValid ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {isGmailValid ? 'VALID' : 'INVALID FORMAT'}
+                  {email && isEmailValid !== null && (
+                    <span className={`text-[10px] font-mono ${isEmailValid ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {isEmailValid ? 'VALID' : 'INVALID FORMAT'}
                     </span>
                   )}
                 </div>
@@ -206,10 +204,10 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="yourname@gmail.com"
+                    placeholder="yourname@gmail.com or email"
                     required
                     className={`w-full bg-[#000000]/80 border rounded-xl px-4 py-3 pl-11 text-xs text-white placeholder-zinc-600 focus:outline-none transition-colors font-sans ${
-                      email && isGmailValid === false ? 'border-red-500/60' : 'border-zinc-800 focus:border-[#E8C49A]'
+                      email && isEmailValid === false ? 'border-red-500/60' : 'border-zinc-800 focus:border-[#E8C49A]'
                     }`}
                   />
                   <Mail className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
